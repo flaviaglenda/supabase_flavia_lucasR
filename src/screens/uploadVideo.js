@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import * as DocumentPicker from "expo-document-picker";
 import { supabase } from "../../supabaseConfig";
-import * as FileSystem from "expo-file-system";
+import { Platform } from "react-native";
 
 export default function UploadVideo({ navigation }) {
   const [video, setVideo] = useState(null);
@@ -54,17 +54,14 @@ export default function UploadVideo({ navigation }) {
       setUploading(true);
 
       const filePath = `${category}/${Date.now()}_${video.name}`;
-      const fileData = await FileSystem.readAsStringAsync(video.uri, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
 
-      const fileBuffer = Uint8Array.from(atob(fileData), (c) =>
-        c.charCodeAt(0)
-      );
+      // Obter blob do vídeo
+      const response = await fetch(video.uri);
+      const blob = await response.blob();
 
       const { error } = await supabase.storage
         .from("videos")
-        .upload(filePath, fileBuffer, {
+        .upload(filePath, blob, {
           contentType: video.type,
           upsert: true,
         });
@@ -76,7 +73,7 @@ export default function UploadVideo({ navigation }) {
         Alert.alert("Sucesso", "Vídeo enviado com sucesso!");
         setVideo(null);
         setModalVisible(false);
-        navigation.goBack?.(); // só vai voltar se navigation.goBack estiver definido
+        navigation.goBack?.();
       }
     } catch (error) {
       console.error("Erro inesperado:", error);
